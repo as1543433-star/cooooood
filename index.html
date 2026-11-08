@@ -3,76 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>أكواد نسك</title>
+<title>توليد أكواد نسك</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a7a4b">
 <style>
-  body{font-family:sans-serif;background:#f5f3ef;margin:0;padding:16px}
-  button{border:none;border-radius:20px;padding:12px 18px;font-size:16px}
-  .main{background:#0a7a4b;color:#fff;width:100%;margin-bottom:10px}
-  .row{background:#fff;border-radius:14px;padding:12px;margin:8px 0;
-       display:flex;justify-content:space-between;align-items:center}
-  .row.used{opacity:.4}
-  code{font-size:17px;direction:ltr}
-  textarea{width:100%;height:90px;margin-top:10px}
+  body{font-family:sans-serif;background:#f5f3ef;margin:0;padding:24px;text-align:center}
+  h1{font-size:22px;margin:16px 0 24px}
+  button{border:none;border-radius:26px;padding:16px 20px;font-size:18px;width:100%}
+  .main{background:#0a7a4b;color:#fff}
+  .card{background:#fff;border-radius:20px;padding:28px 14px;margin-top:22px;display:none}
+  code{display:block;font-size:28px;direction:ltr;margin-bottom:18px;letter-spacing:1px}
+  .copy{background:#111;color:#fff}
+  .info{color:#666;margin-top:14px;font-size:15px}
 </style>
 </head>
 <body>
-<button class="main" id="load">تحميل الأكواد من الموقع</button>
-<button id="clear">مسح المنسوخ</button>
-<textarea id="paste" placeholder="لو التحميل فشل: افتح الموقع، حدد كل النص وانسخه، والصقه هنا"></textarea>
-<button id="parse">استخراج الأكواد من النص</button>
-<div id="list"></div>
+<h1>توليد أكواد نسك</h1>
+<button class="main" id="gen">توليد أكواد نسك</button>
+<div class="card" id="card">
+  <code id="code"></code>
+  <button class="copy" id="copy">نسخ</button>
+</div>
+<div class="info" id="info"></div>
 
 <script>
 const KEY = 'used_codes';
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 let codes = [];
+const $ = id => document.getElementById(id);
 
 function used() {
   try { return JSON.parse(localStorage.getItem(KEY)) || []; }
   catch (e) { return []; }
 }
 
-function extract(text) {
-  const found = text.match(/NG-[A-Za-z0-9]{8}/g) || [];
-  codes = [...new Set(found)];
-  render();
-}
-
-function render() {
+function pending() {
   const u = used();
-  const list = document.getElementById('list');
-  list.innerHTML = '';
-  codes.forEach(c => {
-    const row = document.createElement('div');
-    row.className = 'row' + (u.includes(c) ? ' used' : '');
-    row.innerHTML = '<code>' + c + '</code><button>نسخ</button>';
-    row.querySelector('button').onclick = async () => {
-      await navigator.clipboard.writeText(c);
-      localStorage.setItem(KEY, JSON.stringify(used().concat(c)));
-      render();
-    };
-    list.appendChild(row);
-  });
+  return codes.filter(c => !u.includes(c));
 }
 
-document.getElementById('load').onclick = async () => {
+function show() {
+  const p = pending();
+  if (!p.length) {
+    $('card').style.display = 'none';
+    $('info').textContent = 'مفيش أكواد جديدة دلوقتي. جرّب بعد شوية.';
+    return;
+  }
+  $('code').textContent = p[0];
+  $('card').style.display = 'block';
+  $('info').textContent = 'متبقي ' + p.length + ' كود';
+}
+
+$('gen').onclick = async () => {
+  $('info').textContent = 'جاري التوليد…';
   try {
     const r = await fetch('https://umrahcodes.click/');
-    extract(await r.text());
-    if (!codes.length) alert('الصفحة اتحملت بس مفيش أكواد فيها. استخدم اللصق اليدوي.');
+    const text = await r.text();
+    const found = text.match(/NG-[A-Za-z0-9]{8}/g) || [];
+    codes = [...new Set(found)];
+    show();
   } catch (e) {
-    alert('الموقع منع التحميل المباشر. استخدم اللصق اليدوي تحت.');
+    $('card').style.display = 'none';
+    $('info').textContent = 'تعذّر التوليد. اتأكد من الإنترنت وجرّب تاني.';
   }
 };
 
-document.getElementById('parse').onclick = () =>
-  extract(document.getElementById('paste').value);
-
-document.getElementById('clear').onclick = () => {
-  localStorage.removeItem(KEY);
-  render();
+$('copy').onclick = async () => {
+  const c = $('code').textContent;
+  try { await navigator.clipboard.writeText(c); } catch (e) {}
+  localStorage.setItem(KEY, JSON.stringify(used().concat(c)));
+  show();
 };
 </script>
 </body>
