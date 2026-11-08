@@ -14,6 +14,7 @@
   .card{background:#fff;border-radius:20px;padding:28px 14px;margin-top:22px;display:none}
   code{display:block;font-size:28px;direction:ltr;margin-bottom:18px;letter-spacing:1px}
   .copy{background:#111;color:#fff}
+  .open{display:block;margin-top:12px;padding:16px 20px;border-radius:26px;background:#eee;color:#111;font-size:18px;text-decoration:none}
   .info{color:#666;margin-top:14px;font-size:15px}
 </style>
 </head>
@@ -23,15 +24,16 @@
 <div class="card" id="card">
   <code id="code"></code>
   <button class="copy" id="copy">نسخ</button>
+  <a class="open" id="open" href="#" target="_blank" rel="noopener">فتح في نسك</a>
 </div>
 <div class="info" id="info"></div>
 
 <script>
 const KEY = 'used_codes';
-const CACHE = 'codes_cache';
-const TIME = 'codes_time';
-const API = 'https://umrahcodes.click/open-data/v1/latest.json';
-const REFRESH_MS = 15 * 60 * 1000;
+const CACHE = 'codes_all';
+const TIME = 'codes_all_time';
+const API = 'https://umrahcodes.click/open-data/v1/codes.json';
+const REFRESH_MS = 60 * 60 * 1000;
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 let codes = [];
 const $ = id => document.getElementById(id);
@@ -39,11 +41,6 @@ const $ = id => document.getElementById(id);
 function used() {
   try { return JSON.parse(localStorage.getItem(KEY)) || []; }
   catch (e) { return []; }
-}
-
-function pending() {
-  const u = used();
-  return codes.filter(c => !u.includes(c));
 }
 
 async function load() {
@@ -55,22 +52,30 @@ async function load() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     list = d.codes.map(x => x.code);
-    localStorage.setItem(CACHE, JSON.stringify(list));
-    localStorage.setItem(TIME, String(Date.now()));
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    try {
+      localStorage.setItem(CACHE, JSON.stringify(list));
+      localStorage.setItem(TIME, String(Date.now()));
+    } catch (e) {}
   }
   codes = list;
 }
 
 function show() {
-  const p = pending();
-  if (!p.length) {
+  const u = new Set(used());
+  const next = codes.find(c => !u.has(c));
+  if (!next) {
     $('card').style.display = 'none';
-    $('info').textContent = 'خلصت الأكواد الحالية. جرّب بعد ربع ساعة تقريبًا.';
+    $('info').textContent = 'مفيش أكواد جديدة دلوقتي.';
     return;
   }
-  $('code').textContent = p[0];
+  $('info').textContent = '';
+  $('code').textContent = next;
+  $('open').href = 'https://services.nusuk.sa/app/?p=27&id=' + next;
   $('card').style.display = 'block';
-  $('info').textContent = 'متبقي ' + p.length + ' كود';
 }
 
 $('gen').onclick = async () => {
@@ -89,6 +94,12 @@ $('copy').onclick = async () => {
   try { await navigator.clipboard.writeText(c); } catch (e) {}
   localStorage.setItem(KEY, JSON.stringify(used().concat(c)));
   show();
+};
+
+$('open').onclick = () => {
+  const c = $('code').textContent;
+  localStorage.setItem(KEY, JSON.stringify(used().concat(c)));
+  setTimeout(show, 400);
 };
 </script>
 </body>
