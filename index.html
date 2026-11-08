@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أكواد نسك</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a7a4b">
+<style>
+  body{font-family:sans-serif;background:#f5f3ef;margin:0;padding:16px}
+  button{border:none;border-radius:20px;padding:12px 18px;font-size:16px}
+  .main{background:#0a7a4b;color:#fff;width:100%;margin-bottom:10px}
+  .row{background:#fff;border-radius:14px;padding:12px;margin:8px 0;
+       display:flex;justify-content:space-between;align-items:center}
+  .row.used{opacity:.4}
+  code{font-size:17px;direction:ltr}
+  textarea{width:100%;height:90px;margin-top:10px}
+</style>
+</head>
+<body>
+<button class="main" id="load">تحميل الأكواد من الموقع</button>
+<button id="clear">مسح المنسوخ</button>
+<textarea id="paste" placeholder="لو التحميل فشل: افتح الموقع، حدد كل النص وانسخه، والصقه هنا"></textarea>
+<button id="parse">استخراج الأكواد من النص</button>
+<div id="list"></div>
+
+<script>
+const KEY = 'used_codes';
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+let codes = [];
+
+function used() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+  catch (e) { return []; }
+}
+
+function extract(text) {
+  const found = text.match(/NG-[A-Za-z0-9]{8}/g) || [];
+  codes = [...new Set(found)];
+  render();
+}
+
+function render() {
+  const u = used();
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  codes.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'row' + (u.includes(c) ? ' used' : '');
+    row.innerHTML = '<code>' + c + '</code><button>نسخ</button>';
+    row.querySelector('button').onclick = async () => {
+      await navigator.clipboard.writeText(c);
+      localStorage.setItem(KEY, JSON.stringify(used().concat(c)));
+      render();
+    };
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('load').onclick = async () => {
+  try {
+    const r = await fetch('https://umrahcodes.click/');
+    extract(await r.text());
+    if (!codes.length) alert('الصفحة اتحملت بس مفيش أكواد فيها. استخدم اللصق اليدوي.');
+  } catch (e) {
+    alert('الموقع منع التحميل المباشر. استخدم اللصق اليدوي تحت.');
+  }
+};
+
+document.getElementById('parse').onclick = () =>
+  extract(document.getElementById('paste').value);
+
+document.getElementById('clear').onclick = () => {
+  localStorage.removeItem(KEY);
+  render();
+};
+</script>
+</body>
+</html>
