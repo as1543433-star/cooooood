@@ -1,0 +1,8 @@
+{
+  "appId": "com.nask.codes",
+  "appName": "Nask Codes",
+  "webDir": "www",
+  "plugins": {
+    "CapacitorHttp": { "enabled": true }
+  }
+}
