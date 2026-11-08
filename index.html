@@ -28,6 +28,10 @@
 
 <script>
 const KEY = 'used_codes';
+const CACHE = 'codes_cache';
+const TIME = 'codes_time';
+const API = 'https://umrahcodes.click/open-data/v1/latest.json';
+const REFRESH_MS = 15 * 60 * 1000;
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 let codes = [];
 const $ = id => document.getElementById(id);
@@ -42,11 +46,26 @@ function pending() {
   return codes.filter(c => !u.includes(c));
 }
 
+async function load() {
+  let list = null;
+  try { list = JSON.parse(localStorage.getItem(CACHE)); } catch (e) {}
+  const age = Date.now() - Number(localStorage.getItem(TIME) || 0);
+  if (!list || !list.length || age > REFRESH_MS) {
+    const r = await fetch(API);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    list = d.codes.map(x => x.code);
+    localStorage.setItem(CACHE, JSON.stringify(list));
+    localStorage.setItem(TIME, String(Date.now()));
+  }
+  codes = list;
+}
+
 function show() {
   const p = pending();
   if (!p.length) {
     $('card').style.display = 'none';
-    $('info').textContent = 'مفيش أكواد جديدة دلوقتي. جرّب بعد شوية.';
+    $('info').textContent = 'خلصت الأكواد الحالية. جرّب بعد ربع ساعة تقريبًا.';
     return;
   }
   $('code').textContent = p[0];
@@ -57,14 +76,11 @@ function show() {
 $('gen').onclick = async () => {
   $('info').textContent = 'جاري التوليد…';
   try {
-    const r = await fetch('https://umrahcodes.click/');
-    const text = await r.text();
-    const found = text.match(/NG-[A-Za-z0-9]{8}/g) || [];
-    codes = [...new Set(found)];
+    await load();
     show();
   } catch (e) {
     $('card').style.display = 'none';
-    $('info').textContent = 'تعذّر التوليد. اتأكد من الإنترنت وجرّب تاني.';
+    $('info').textContent = 'تعذّر التوليد: ' + e.message;
   }
 };
 
