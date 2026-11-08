@@ -1,0 +1,14 @@
+{
+  "name": "أكواد نسك",
+  "short_name": "أكواد نسك",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f3ef",
+  "theme_color": "#0a7a4b",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
